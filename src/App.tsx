@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import ProtectedRoute from './components/routing/ProtectedRoute';
@@ -22,7 +22,7 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <BrowserRouter>
+        <HashRouter>
           <Routes>
             {/* Routes remain unchanged */}
             <Route path="/login" element={<LoginForm />} />
@@ -55,7 +55,7 @@ const App: React.FC = () => {
                     <h1 className="text-4xl font-bold text-gray-900">404</h1>
                     <p className="mt-2 text-lg text-gray-600">Page not found</p>
                     <button
-                      onClick={() => window.location.href = '/dashboard'}
+                      onClick={() => window.location.href = '/#/dashboard'}
                       className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
                       Return to Dashboard
@@ -65,12 +65,10 @@ const App: React.FC = () => {
               }
             />
           </Routes>
-        </BrowserRouter>
+        </HashRouter>
       </AuthProvider>
     </ErrorBoundary>
   );
 };
 
 export default App;
-
-// Error handling code remains unchanged
