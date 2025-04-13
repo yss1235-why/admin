@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { setupAdminRecord } from '../../utils/setupAdmin';
+import { ref, set } from 'firebase/database';
+import { database, ADMIN_UID } from '../../config/firebase.config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,19 +19,33 @@ const LoginForm: React.FC = () => {
   const location = useLocation();
   const from = location.state?.from?.pathname || '/dashboard';
 
+  // Helper function to ensure admin record exists
+  const ensureAdminExists = async () => {
+    try {
+      // Create admin record directly - will be allowed if user UID matches ADMIN_UID
+      await set(ref(database, `admins/${ADMIN_UID}`), {
+        username: email.split('@')[0] || 'admin',
+        role: 'admin',
+        lastLogin: Date.now()
+      });
+      console.log('Admin record created/updated successfully');
+    } catch (error) {
+      console.log('Failed to create/update admin record:', error);
+      // Continue anyway - verification will be attempted in AuthContext
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setIsSubmitting(true);
 
     try {
+      // Ensure admin record exists first
+      await ensureAdminExists();
+      
+      // Then attempt login
       await login(email, password);
-      // After successful login, try to set up admin record
-      try {
-        await setupAdminRecord();
-      } catch (adminError) {
-        console.log('Admin record may already exist:', adminError);
-      }
       navigate(from, { replace: true });
     } catch (error: any) {
       setLoginError(
@@ -41,6 +56,7 @@ const LoginForm: React.FC = () => {
     }
   };
 
+  // The rest of the component remains unchanged
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-4">

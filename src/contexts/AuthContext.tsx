@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { ref, get, set } from 'firebase/database';
-import { auth, database } from '../config/firebase.config';
+import { auth, database, ADMIN_UID } from '../config/firebase.config';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -28,22 +28,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyAdminAccess = async (user: User) => {
     try {
-      const adminsRef = ref(database, 'admins');
+      // First, check if this is the predefined admin UID
+      if (user.uid === ADMIN_UID) {
+        // For the predefined admin UID, create or update admin record directly
+        const adminRecord = {
+          username: user.email?.split('@')[0] || 'admin',
+          role: 'admin',
+          lastLogin: Date.now()
+        };
+        
+        // Write admin record to database
+        await set(ref(database, `admins/${user.uid}`), adminRecord);
+        console.log('Admin verification successful for predefined admin:', adminRecord);
+        return adminRecord;
+      }
+      
+      // For other users, check admin status
+      const adminsRef = ref(database, `admins/${user.uid}`);
       const snapshot = await get(adminsRef);
 
       if (!snapshot.exists()) {
-        console.error('No admins collection found');
+        console.error('No admin record found for user:', user.uid);
         throw new Error('No admin record found');
       }
 
-      const adminsData = snapshot.val();
-      const adminRecord = adminsData[user.uid];
-
-      if (!adminRecord) {
-        console.error('No matching admin record for user:', user.uid);
-        throw new Error('No admin record found');
-      }
-
+      const adminRecord = snapshot.val();
       if (adminRecord.role !== 'admin') {
         console.error('Invalid admin role for user:', user.uid);
         throw new Error('Invalid admin role');
